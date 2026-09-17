@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+*.log
+.ipynb_checkpoints/
+.vscode/
+.idea/
+data/raw/
+venv/
+data/processed/training_data.csv
+data/processed/uber_conversations.csv
+data/processed/uber_clean.csv

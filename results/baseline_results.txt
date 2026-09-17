@@ -1,0 +1,16 @@
+Hiver SDE Intern Take-Home
+Uber_Support Intent Classification
+
+Golden evaluation set:
+215 human-labelled examples
+9 intents
+
+Baseline 1: Majority Classifier
+Accuracy: 0.4558
+Macro F1: 0.07
+Weighted F1: 0.29
+
+Baseline 2: TF-IDF + Logistic Regression
+Accuracy: 0.6326
+Macro F1: 0.39
+Weighted F1: 0.62
