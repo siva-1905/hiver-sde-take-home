@@ -42,9 +42,9 @@ The assignment explicitly allows subsampling because the evaluator will not run 
 
 ---
 
-# 2. Dataset
+## 2. Dataset
 
-The primary dataset is the **Customer Support on Twitter** dataset from Kaggle (`thoughtvector/customer-support-on-twitter`).
+The primary dataset is the **Customer Support on Twitter (TWCS)** dataset from Kaggle (`thoughtvector/customer-support-on-twitter`).
 
 The dataset contains approximately 3 million tweets, multi-turn support threads, and multiple brands.
 
@@ -59,9 +59,29 @@ After extracting and cleaning the Uber conversations:
 
 The golden set was kept separate from the training data.
 
+### Dataset availability
+
+The original TWCS dataset is approximately **493 MB** and is intentionally **not committed to this GitHub repository**.
+
+This avoids unnecessarily storing a large raw dataset in Git while keeping the repository lightweight and reproducible.
+
+To run the complete data-processing pipeline from the raw data, download the TWCS dataset separately and place:
+
+```text
+twcs.csv
+```
+
+at:
+
+```text
+data/raw/twcs.csv
+```
+
+The raw dataset is not required to inspect the included golden evaluation set or previously generated evaluation artifacts.
+
 ---
 
-# 3. Intent Taxonomy
+## 3. Intent Taxonomy
 
 The intent categories were defined from the Uber Support data rather than imported from an unrelated taxonomy.
 
@@ -75,25 +95,25 @@ The final intents are:
 * `safety_fraud`
 * `technical_issue`
 * `delivery_issue`
-* `general_support`
+* `support_followup`
 
 Examples include:
 
-| Intent          | Example                                               |
-| --------------- | ----------------------------------------------------- |
-| fare_payment    | Questions about charges, fares, payment methods       |
-| cancellation    | Cancellation and cancellation-fee issues              |
-| driver_issue    | Driver behavior or driver-related problems            |
-| lost_item       | Items lost during an Uber trip                        |
-| account_access  | Login and account-access problems                     |
-| safety_fraud    | Fraud, unauthorized activity, or safety concerns      |
-| technical_issue | App or technical problems                             |
-| delivery_issue  | Uber Eats/order/delivery problems                     |
-| general_support | Requests that do not fit the more specific categories |
+| Intent             | Example                                                                                            |
+| ------------------ | -------------------------------------------------------------------------------------------------- |
+| `fare_payment`     | Questions about charges, fares, payment methods                                                    |
+| `cancellation`     | Cancellation and cancellation-fee issues                                                           |
+| `driver_issue`     | Driver behavior or driver-related problems                                                         |
+| `lost_item`        | Items lost during an Uber trip                                                                     |
+| `account_access`   | Login and account-access problems                                                                  |
+| `safety_fraud`     | Fraud, unauthorized activity, or safety concerns                                                   |
+| `technical_issue`  | App or technical problems                                                                          |
+| `delivery_issue`   | Uber Eats/order/delivery problems                                                                  |
+| `support_followup` | Follow-up messages referring to previously requested information or an ongoing support interaction |
 
 ---
 
-# 4. System Architecture
+## 4. System Architecture
 
 ```text
 Customer Message
@@ -115,7 +135,7 @@ Safety + Confidence Checks
        +------> ESCALATE
 ```
 
-## Intent Classification
+### Intent Classification
 
 The classifier uses both word-level and character-level TF-IDF representations.
 
@@ -126,7 +146,7 @@ This allows the classifier to use:
 * Word-level semantic patterns.
 * Character-level patterns useful for short/noisy support messages and spelling variations.
 
-## Historical Retrieval
+### Historical Retrieval
 
 The system builds a TF-IDF index over historical Uber customer-support conversations.
 
@@ -134,7 +154,7 @@ For each new message, the system retrieves the top three similar historical conv
 
 These conversations provide evidence for the response generator.
 
-## Reply Generation
+### Reply Generation
 
 An LLM generates the customer-facing reply using:
 
@@ -146,7 +166,7 @@ The generation prompt explicitly instructs the model not to invent policies, pro
 
 If historical evidence is insufficient, the model is instructed to direct the customer to Uber Support or request additional information.
 
-## Escalation
+### Escalation
 
 The system escalates cases when:
 
@@ -161,7 +181,7 @@ Every escalation includes a reason.
 
 ---
 
-# 5. Golden Evaluation Set
+## 5. Golden Evaluation Set
 
 I created a separate hand-labelled golden evaluation set containing **215 examples**, satisfying the assignment requirement of 150–250 hand-labelled examples.
 
@@ -169,13 +189,13 @@ The examples were sampled from the processed Uber Support conversations and manu
 
 The golden set was kept separate from the training examples to evaluate the system on unseen examples.
 
-The evaluation contains examples across the supported intent categories, including cancellation, fare/payment, driver issues, delivery issues, account access, safety/fraud, technical issues, and general support.
+The evaluation contains examples across the supported intent categories, including cancellation, fare/payment, driver issues, delivery issues, account access, safety/fraud, technical issues, lost-item cases, and support follow-ups.
 
 ---
 
-# 6. Evaluation Results
+## 6. Evaluation Results
 
-## Intent Classifier
+### Intent Classifier
 
 The classifier was evaluated on the 215-example golden set.
 
@@ -191,13 +211,13 @@ The classifier performs substantially better on common intents such as cancellat
 
 ---
 
-# 7. Results vs Baselines
+## 7. Results vs Baselines
 
 The final intent classifier was compared against two baselines on the same 215-example golden evaluation set.
 
-## Baseline 1: Majority Classifier
+### Baseline 1: Majority Classifier
 
-The trivial baseline always predicts the most frequent class in the training/evaluation data.
+The trivial baseline always predicts the most frequent class.
 
 The majority class was:
 
@@ -213,9 +233,9 @@ Results:
 | Macro F1    |                7% |
 | Weighted F1 |               29% |
 
-This provides a minimum reference point. Its relatively high accuracy is largely explained by the presence of `fare_payment` as the largest class in the golden set.
+This provides a minimum reference point. Its relatively high accuracy is largely explained by the presence of `fare_payment` as the largest class in the evaluation set.
 
-## Baseline 2: TF-IDF + Logistic Regression
+### Baseline 2: TF-IDF + Logistic Regression
 
 The simple ML baseline uses TF-IDF features with Logistic Regression.
 
@@ -227,7 +247,7 @@ Results:
 | Macro F1    |                          39% |
 | Weighted F1 |                          62% |
 
-## Final Classifier
+### Final Classifier
 
 The final classifier combines word-level and character-level TF-IDF representations.
 
@@ -239,7 +259,7 @@ Results:
 | Macro F1    |          **41%** |
 | Weighted F1 |          **64%** |
 
-## Comparison
+### Comparison
 
 | Model                        |   Accuracy | Macro F1 | Weighted F1 |
 | ---------------------------- | ---------: | -------: | ----------: |
@@ -259,10 +279,11 @@ This suggests that the combined word + character representation provides an incr
 
 The baseline comparison is therefore important: the final model performs better than both reference systems, but the results also show that the remaining classification problem is difficult.
 
+---
 
-# 8. Agent Evaluation
+## 8. Agent Evaluation
 
-The complete agent was evaluated on the 215-example golden set.
+The complete agent was evaluated on the 215-example golden set to examine its routing behavior.
 
 Results:
 
@@ -280,7 +301,7 @@ The agent does not automatically handle every request. Sensitive and uncertain c
 
 ---
 
-# 9. Manual End-to-End Tests
+## 9. Manual End-to-End Tests
 
 Representative cases were tested manually.
 
@@ -376,67 +397,59 @@ The system treated the message as a high-risk case and escalated it rather than 
 
 ---
 
-# 10. Failure Analysis
+## 10. Failure Analysis
 
 The evaluation revealed several important failure modes.
 
-## 1. Rare-intent confusion
+### 1. Rare-intent confusion
 
 Rare categories have substantially fewer examples than common categories.
 
 For example, the golden set contained only a small number of `lost_item` and `safety_fraud` examples.
 
-Hypothesis:
+**Hypothesis:**
 
 The classifier has insufficient representative examples for these intents and therefore tends to map some of them to more common categories.
 
----
+### 2. Support-follow-up ambiguity
 
-## 2. General-support ambiguity
+Some customer messages refer to a previous interaction without clearly stating a new issue.
 
-Some customer messages are difficult to place into a single operational category.
+Examples may include messages indicating that requested information has already been submitted or that the customer is waiting for a previous support request to be resolved.
 
-Messages that do not contain strong intent-specific vocabulary can be classified as `general_support` or another semantically related intent.
+**Hypothesis:**
 
-Hypothesis:
+These messages depend heavily on conversation context, while the classifier primarily receives the current message.
 
-The boundaries between general support and specific intents are inherently ambiguous.
-
----
-
-## 3. Driver-related ambiguity
+### 3. Driver-related ambiguity
 
 Some driver messages describe several issues simultaneously, such as driver behaviour, fare disputes, or trip problems.
 
-Hypothesis:
+**Hypothesis:**
 
 The intent taxonomy is based on the primary support issue, while real customer messages may contain multiple issues.
 
----
-
-## 4. Safety/fraud language is difficult to classify
+### 4. Safety/fraud language is difficult to classify
 
 Safety and unauthorized-account messages are relatively rare but require conservative handling.
 
 The escalation layer therefore provides a second safety mechanism independent of the classifier's exact prediction.
 
-Hypothesis:
+**Hypothesis:**
 
 For high-risk cases, detecting risk language is more important than forcing perfect intent classification.
 
----
-
-## 5. Short/noisy customer messages
+### 5. Short/noisy customer messages
 
 Twitter support messages are often short, informal, misspelled, or contain incomplete context.
 
-Hypothesis:
+**Hypothesis:**
 
 Character-level TF-IDF helps with noisy language, but some messages still lack enough information for reliable classification.
 
 ---
 
-# 11. What Is Misleading About My Headline Number?
+## 11. What Is Misleading About My Headline Number?
 
 The headline classifier accuracy is **65.58%**, but this number should not be interpreted as meaning that the agent successfully resolves 65.58% of customer problems.
 
@@ -468,7 +481,7 @@ This distinction is important when evaluating whether the system is trustworthy.
 
 ---
 
-# 12. LLM-as-Judge
+## 12. LLM-as-Judge
 
 An LLM-based reply-quality evaluation harness was implemented.
 
@@ -493,15 +506,17 @@ The reply-generation component itself successfully produced customer-facing resp
 
 However, the full automated judge evaluation could not be completed because the OpenAI organization reached its daily API request limit during execution.
 
-Therefore, no unsupported reply-quality score is reported.
+Consequently, this repository does **not** report an LLM-judge reply-quality score or a human-vs-LLM agreement statistic that was not actually measured.
 
-The human-agreement portion of the judge evaluation is also not claimed as complete.
+The judge rubric and evaluation harness remain implemented in `src/evaluate_replies.py`.
 
-This is a limitation of the current evaluation run rather than an invented result.
+Completing the human-agreement study is included as a next-step evaluation task below.
+
+This limitation is explicitly documented rather than replaced with an unsupported or fabricated result.
 
 ---
 
-# 13. What I Would Do With One More Week
+## 13. What I Would Do With One More Week
 
 With another week, I would focus primarily on evaluation and reliability rather than adding more system complexity.
 
@@ -535,7 +550,7 @@ Allow a message to contain more than one issue while selecting a primary action 
 
 ---
 
-# 14. Decision Log
+## 14. Decision Log
 
 1. **Selected Uber Support** because it provided a sufficiently large collection of support conversations for building and evaluating a focused agent.
 
@@ -569,7 +584,21 @@ Allow a message to contain more than one issue while selecting a primary action 
 
 ---
 
-# 15. Reproducibility
+## 15. Reproducibility
+
+### Environment setup
+
+Create and activate a virtual environment:
+
+```bash
+python -m venv .venv
+```
+
+Activate it on Windows:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
 
 Install dependencies:
 
@@ -577,53 +606,109 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Run the classifier evaluation:
+### Reproduce headline results
+
+The main headline classifier results can be reproduced with:
 
 ```bash
 python src/evaluate_classifier.py
 ```
 
-Run the complete agent evaluation:
+This evaluates the classifier against the 215-example golden set and reports accuracy, macro F1, and weighted F1.
+
+### Reproduce baseline results
+
+Run the trivial baseline:
+
+```bash
+python src/baseline_majority.py
+```
+
+Run the simple TF-IDF + Logistic Regression baseline:
+
+```bash
+python src/baseline_tfidf.py
+```
+
+The previously generated baseline results are also available in:
+
+```text
+results/baseline_results.txt
+```
+
+### Run the complete agent evaluation
 
 ```bash
 python src/evaluate_agent.py
 ```
 
-Run the agent manually:
+### Run the agent manually
 
 ```bash
 python src/agent.py
 ```
 
-Run the baselines:
+### LLM-based reply generation
 
-```bash
-python src/baseline_majority.py
-python src/baseline_tfidf.py
-```
-
-LLM-based reply generation requires an OpenAI API key in `.env`:
+LLM-based reply generation requires an OpenAI API key stored locally in `.env`:
 
 ```text
 OPENAI_API_KEY=your_api_key
 ```
 
+The `.env` file is intentionally excluded from Git.
+
 The core classifier and evaluation pipeline can be inspected independently of the LLM reply-generation component.
+
+### Raw dataset
+
+The original TWCS dataset is intentionally not included in GitHub because it is approximately 493 MB.
+
+If running the full raw-data processing pipeline, place:
+
+```text
+twcs.csv
+```
+
+at:
+
+```text
+data/raw/twcs.csv
+```
+
+The repository's raw dataset and local environment files are excluded through `.gitignore`.
 
 ---
 
-# 16. Project Structure
+## 16. Project Structure
 
 ```text
 hiver-sde/
+
 │
 ├── README.md
+├── REPORT.md
+├── DECISION_LOG.md
 ├── requirements.txt
 │
 ├── data/
+│   ├── golden_set.csv
+│   ├── agent_evaluation.csv
+│   ├── failure_analysis.csv
+│   │
 │   ├── raw/
-│   │   └── twcs.csv
+│   │   └── twcs.csv              # local only, not committed
+│   │
 │   └── processed/
+│       ├── balanced_labeling.csv
+│       ├── human_labeled.csv
+│       └── intent_labeling.csv
+│
+├── notebooks/
+│   └── 01_data_exploration.ipynb
+│
+├── results/
+│   └── baseline_results.txt
 │
 └── src/
     ├── agent.py
@@ -641,7 +726,7 @@ hiver-sde/
 
 ---
 
-# 17. Summary
+## 17. Summary
 
 The project demonstrates a complete customer-support automation pipeline:
 
@@ -673,6 +758,10 @@ and:
 
 **64.08% weighted F1.**
 
+The final classifier improves over both a trivial majority baseline and a simpler TF-IDF + Logistic Regression baseline.
+
 The evaluation also demonstrates that the agent can distinguish between cases suitable for automatic handling and cases that should be escalated to a human.
 
 The main lesson from the evaluation is that a single headline classification number is insufficient to establish trust. A support agent needs classification evaluation, baseline comparisons, failure analysis, grounding checks, and conservative escalation behavior.
+
+The LLM-as-judge rubric and harness were implemented, but the full judge run and human-agreement measurement could not be completed because of an OpenAI API quota limitation during the evaluation run. This limitation is explicitly reported rather than replaced with an unsupported result.
